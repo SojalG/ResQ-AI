@@ -1,0 +1,14 @@
+services:
+  server:
+    build: ./server
+    ports: ["3001:3001"]
+    env_file: .env
+    environment:
+      - ML_SERVICE_URL=http://ml:5001
+    volumes:
+      - ./server/uploads:/app/uploads
+    depends_on: [ml]
+  ml:
+    build: ./ml
+    ports: ["5001:5001"]
+
