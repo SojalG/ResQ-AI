@@ -18,16 +18,52 @@ import {
 const router = Router();
 
 const localPredict = ({
-    rainfall = 65,
-    temperature = 34,
-    aqi = 98,
-    waterLevel = 2.7
+    rainfall = 0,
+    temperature = 25,
+    aqi = 0,
+    waterLevel = 0,
+    next24HoursRainfall = 0,
+    maxRainProbability = 0
 }) => ({
-    floodRisk: Math.min(100, Math.max(2, rainfall * .65 + waterLevel * 10)),
-    heatwaveRisk: Math.min(100, Math.max(3, (temperature - 20) * 4.2)),
-    stormRisk: Math.min(100, Math.max(4, rainfall * .48 + waterLevel * 5)),
-    airQualityRisk: Math.min(100, Math.max(2, aqi * .55))
+    floodRisk: Math.min(
+        100,
+        Math.max(
+            2,
+            rainfall * 0.65 +
+            next24HoursRainfall * 0.35 +
+            maxRainProbability * 0.12 +
+            waterLevel * 10
+        )
+    ),
+
+    heatwaveRisk: Math.min(
+        100,
+        Math.max(
+            3,
+            (temperature - 20) * 4.2
+        )
+    ),
+
+    stormRisk: Math.min(
+        100,
+        Math.max(
+            4,
+            rainfall * 0.48 +
+            next24HoursRainfall * 0.20 +
+            maxRainProbability * 0.10 +
+            waterLevel * 5
+        )
+    ),
+
+    airQualityRisk: Math.min(
+        100,
+        Math.max(
+            2,
+            aqi * 0.55
+        )
+    )
 });
+
 async function predict(input) {
     try {
         return (await axios.post(`${process.env.ML_SERVICE_URL||'http://localhost:5001'}/predict`, input, {
