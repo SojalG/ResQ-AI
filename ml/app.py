@@ -32,7 +32,12 @@ def health(): return jsonify(ok=True)
 @app.post('/predict')
 def predict():
     d = request.get_json(silent=True) or {}
-    row = [[float(d.get('rainfall', 65)), float(d.get('temperature', 34)), float(d.get('aqi', 98)), float(d.get('waterLevel', 2.7))]]
+    row = [[
+    float(d.get('rainfall', 0)),
+    float(d.get('temperature', 25)),
+    float(d.get('aqi', 0)),
+    float(d.get('waterLevel', 0))
+]]
     values = np.clip(model.predict(row)[0], 0, 100)
     return jsonify(dict(zip(['floodRisk','heatwaveRisk','stormRisk','airQualityRisk'], [round(float(x), 1) for x in values])))
 
