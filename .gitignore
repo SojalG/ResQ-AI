@@ -1,9 +1,13 @@
+# Python
+ml/venv/
+ml/__pycache__/
+*.pyc
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Node
 node_modules/
 dist/
-.env
-*.log
-__pycache__/
-*.pyc
-ml/model.joblib
-uploads/
-

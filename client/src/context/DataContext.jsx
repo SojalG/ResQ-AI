@@ -62,22 +62,22 @@ export function DataProvider({
              * This calls:
              * POST /api/live-alerts/refresh
              */
-            await api.post(
-                '/live-alerts/refresh',
-                {
-                    lat,
-                    lng
-                }
-            );
+            // await api.post(
+            //     '/live-alerts/refresh',
+            //     {
+            //         lat,
+            //         lng
+            //     }
+            // );
 
             /*
              * Now fetch the active alerts
              * from MongoDB.
              */
-            const alertsResponse =
-                await api.get(
-                    '/alerts'
-                );
+            // const alertsResponse =
+            //     await api.get(
+            //         '/alerts'
+            //     );
 
             /*
              * Incidents are still loaded

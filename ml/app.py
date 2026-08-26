@@ -41,5 +41,7 @@ def predict():
     values = np.clip(model.predict(row)[0], 0, 100)
     return jsonify(dict(zip(['floodRisk','heatwaveRisk','stormRisk','airQualityRisk'], [round(float(x), 1) for x in values])))
 
-if __name__ == '__main__': app.run(host='0.0.0.0', port=5001)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5001))
+    app.run(host="0.0.0.0", port=port)
 
