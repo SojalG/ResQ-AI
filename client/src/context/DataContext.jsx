@@ -29,86 +29,47 @@ export function DataProvider({
         useState(true);
 
     const refresh = async () => {
-        try {
-            /*
-             * Get the user's actual
-             * browser location.
-             */
-            const position =
-                await getPosition();
+    try {
+        const position = await getPosition();
 
-            console.log(
-                'ResQAI location:',
-                position
-            );
+        console.log(
+            'ResQAI location:',
+            position
+        );
 
-            const {
-                lat,
-                lng
-            } = position;
+        const riskUrl =
+            `/risk/current?lat=${position.lat}&lng=${position.lng}`;
 
-            /*
-             * Get live risk data.
-             */
-            const riskResponse =
-                await api.get(
-                    `/risk/current?lat=${lat}&lng=${lng}`
-                );
+        const riskResponse =
+            await api.get(riskUrl);
 
-            /*
-             * Generate/update live alerts
-             * using the SAME location.
-             *
-             * This calls:
-             * POST /api/live-alerts/refresh
-             */
-            // await api.post(
-            //     '/live-alerts/refresh',
-            //     {
-            //         lat,
-            //         lng
-            //     }
-            // );
+        const alertsResponse =
+            await api.get('/alerts');
 
-            /*
-             * Now fetch the active alerts
-             * from MongoDB.
-             */
-            // const alertsResponse =
-            //     await api.get(
-            //         '/alerts'
-            //     );
+        const incidentsResponse =
+            await api.get('/incidents?limit=50');
 
-            /*
-             * Incidents are still loaded
-             * normally from MongoDB.
-             */
-            const incidentsResponse =
-                await api.get(
-                    '/incidents?limit=50'
-                );
+        setRisks(
+            riskResponse.data
+        );
 
-            setRisks(
-                riskResponse.data
-            );
+        setAlerts(
+            alertsResponse.data
+        );
 
-            setAlerts(
-                alertsResponse.data
-            );
+        setIncidents(
+            incidentsResponse.data
+        );
 
-            setIncidents(
-                incidentsResponse.data
-            );
-
-        } catch (error) {
-            console.error(
-                'Failed to load ResQAI data:',
-                error
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
+    } catch (error) {
+        console.error(
+            'Failed to load ResQAI data:',
+            error
+        );
+    } finally {
+        setLoading(false);
+    }
+};
 
     useEffect(() => {
 
