@@ -49,22 +49,117 @@ export const store = {
     memoryIncidents = memoryIncidents.filter((x) => x._id !== itemId);
     return true;
   },
-  async alerts() {
-    return usingDatabase()
-      ? Alert.find().sort({ createdAt: -1 }).lean()
-      : memoryAlerts;
-  },
-  async createAlert(data) {
-    if (usingDatabase()) return (await Alert.create(data)).toObject();
-    const item = { ...data, _id: id(), createdAt: new Date().toISOString() };
-    memoryAlerts.unshift(item);
-    return item;
-  },
-  async deleteAlert(itemId) {
-    if (usingDatabase()) return Alert.findByIdAndDelete(itemId);
-    memoryAlerts = memoryAlerts.filter((x) => x._id !== itemId);
-    return true;
-  },
+  async alerts({ activeOnly = false } = {}) {
+  if (usingDatabase()) {
+    const filter = activeOnly
+      ? { active: true }
+      : {};
+
+    return Alert.find(filter)
+      .sort({ updatedAt: -1 })
+      .lean();
+  }
+
+  return activeOnly
+    ? memoryAlerts.filter(
+        (alert) => alert.active !== false
+      )
+    : memoryAlerts;
+},
+
+async createAlert(data) {
+  if (usingDatabase()) {
+    return Alert.findOneAndUpdate(
+      { key: data.key },
+
+      {
+        $set: {
+          title: data.title,
+          type: data.type,
+          message: data.message,
+          severity: data.severity,
+          source: data.source,
+          location: data.location,
+          recommendations:
+            data.recommendations || [],
+          active: true,
+        },
+      },
+
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      },
+    ).lean();
+  }
+
+  const existing = memoryAlerts.find(
+    (alert) => alert.key === data.key
+  );
+
+  if (existing) {
+    Object.assign(existing, {
+      ...data,
+      active: true,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return existing;
+  }
+
+  const item = {
+    ...data,
+    _id: id(),
+    active: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  memoryAlerts.unshift(item);
+
+  return item;
+},
+
+async deactivateAlert(key) {
+  if (usingDatabase()) {
+    return Alert.findOneAndUpdate(
+      { key },
+      {
+        $set: {
+          active: false,
+        },
+      },
+      {
+        new: true,
+      },
+    ).lean();
+  }
+
+  const existing = memoryAlerts.find(
+    (alert) => alert.key === key
+  );
+
+  if (existing) {
+    existing.active = false;
+    existing.updatedAt =
+      new Date().toISOString();
+  }
+
+  return existing || null;
+},
+
+async deleteAlert(itemId) {
+  if (usingDatabase()) {
+    return Alert.findByIdAndDelete(itemId);
+  }
+
+  memoryAlerts = memoryAlerts.filter(
+    (x) => x._id !== itemId
+  );
+
+  return true;
+},
   async chats() {
     return usingDatabase()
       ? ChatSession.find()

@@ -42,26 +42,51 @@ export function DataProvider({
                 position
             );
 
+            const {
+                lat,
+                lng
+            } = position;
+
             /*
-             * Send that location to
-             * the backend.
+             * Get live risk data.
              */
-            const riskUrl =
-                `/risk/current?lat=${position.lat}&lng=${position.lng}`;
+            const riskResponse =
+                await api.get(
+                    `/risk/current?lat=${lat}&lng=${lng}`
+                );
 
-            const [
-                riskResponse,
-                alertsResponse,
-                incidentsResponse
-            ] = await Promise.all([
-                api.get(riskUrl),
+            /*
+             * Generate/update live alerts
+             * using the SAME location.
+             *
+             * This calls:
+             * POST /api/live-alerts/refresh
+             */
+            await api.post(
+                '/live-alerts/refresh',
+                {
+                    lat,
+                    lng
+                }
+            );
 
-                api.get('/alerts'),
+            /*
+             * Now fetch the active alerts
+             * from MongoDB.
+             */
+            const alertsResponse =
+                await api.get(
+                    '/alerts'
+                );
 
-                api.get(
+            /*
+             * Incidents are still loaded
+             * normally from MongoDB.
+             */
+            const incidentsResponse =
+                await api.get(
                     '/incidents?limit=50'
-                )
-            ]);
+                );
 
             setRisks(
                 riskResponse.data
@@ -86,36 +111,40 @@ export function DataProvider({
     };
 
     useEffect(() => {
+
+        /*
+         * Initial live data load.
+         */
         refresh();
 
         /*
-         * Refresh alerts every minute.
+         * Refresh ALL live data every minute.
+         *
+         * This means:
+         *
+         * GPS
+         *   ↓
+         * Weather
+         *   ↓
+         * AQI
+         *   ↓
+         * Risk
+         *   ↓
+         * Alerts
+         *   ↓
+         * MongoDB
          */
         const timer =
             setInterval(
-                async () => {
-                    try {
-                        const response =
-                            await api.get(
-                                '/alerts'
-                            );
-
-                        setAlerts(
-                            response.data
-                        );
-
-                    } catch (error) {
-                        console.error(
-                            'Failed to refresh alerts:',
-                            error
-                        );
-                    }
+                () => {
+                    refresh();
                 },
                 60000
             );
 
         return () =>
             clearInterval(timer);
+
     }, []);
 
     return (
