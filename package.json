@@ -7,6 +7,11 @@
     "install:all": "npm install && npm --prefix client install && npm --prefix server install",
     "seed": "node scripts/seed.js"
   },
-  "devDependencies": { "concurrently": "^9.1.2" }
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^5.0.0"
+  }
 }
-
