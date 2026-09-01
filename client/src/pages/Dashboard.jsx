@@ -59,73 +59,18 @@ function RiskCard({ meta, value }) {
     </div>
   );
 }
-function Weather() {
-  const [weather, setWeather] = useState(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const p = await getPosition();
-        const key = import.meta.env.VITE_OPENWEATHER_API_KEY;
-
-        if (key) {
-          try {
-            const response = await fetch(
-              `https://api.openweathermap.org/data/2.5/weather?lat=${p.lat}&lon=${p.lng}&units=metric&appid=${key}`,
-            );
-
-            if (response.ok) {
-              const d = await response.json();
-
-              setWeather({
-                city: d.name || "Lucknow",
-                temp: Math.round(d.main.temp),
-                humidity: d.main.humidity,
-                wind: Math.round(d.wind.speed * 3.6),
-                condition: d.weather?.[0]?.main || "Clear",
-              });
-
-              return;
-            }
-          } catch (error) {
-            console.error("Weather API error:", error);
-          }
-        }
-
-        // Fallback
-        setWeather({
-          city: "Lucknow, India",
-          temp: 34,
-          humidity: 68,
-          wind: 11,
-          condition: "Partly cloudy",
-        });
-      } catch (error) {
-        console.error("Location/weather error:", error);
-
-        setWeather({
-          city: "Lucknow, India",
-          temp: 34,
-          humidity: 68,
-          wind: 11,
-          condition: "Partly cloudy",
-        });
-      }
-    })();
-  }, []);
-
+function Weather({ weather, locationName }) {
   if (!weather) {
     return <Skeleton className="h-[250px]" />;
   }
 
   return (
     <div className="card overflow-hidden p-6">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <p className="eyebrow !text-teal-500">Local conditions</p>
 
-          <h3 className="mt-2 font-bold text-ink">{weather.city}</h3>
+          <h3 className="mt-2 font-bold text-ink">{locationName}</h3>
         </div>
 
         <div className="grid h-10 w-10 place-items-center rounded-full bg-amber-50">
@@ -133,34 +78,30 @@ function Weather() {
         </div>
       </div>
 
-      {/* Temperature */}
       <div className="mt-8 flex items-end justify-between">
-        <div>
-          <span className="text-6xl font-extrabold tracking-tighter text-ink">
-            {weather.temp}°
-          </span>
-        </div>
+        <span className="text-6xl font-extrabold tracking-tighter text-ink">
+          {Math.round(weather.temperature)}°
+        </span>
 
         <span className="mb-2 text-xs font-semibold text-slate-400">
-          {weather.condition}
+          Live conditions
         </span>
       </div>
 
-      {/* Divider */}
       <div className="mt-7 border-t border-slate-100 pt-5">
         <div className="grid grid-cols-2 gap-5">
-          {/* Humidity */}
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-400">Humidity</span>
 
             <b className="text-xs font-bold text-ink">{weather.humidity}%</b>
           </div>
 
-          {/* Wind */}
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-400">Wind</span>
 
-            <b className="text-xs font-bold text-ink">{weather.wind} km/h</b>
+            <b className="text-xs font-bold text-ink">
+              {weather.windSpeed} km/h
+            </b>
           </div>
         </div>
       </div>
@@ -168,12 +109,13 @@ function Weather() {
   );
 }
 export default function Dashboard() {
-  const { risks, alerts, incidents, loading } = useData();
+  const { risks, alerts, incidents, loading, locationName, position } =
+    useData();
   return (
     <div className="mx-auto max-w-[1500px] px-4 py-7 sm:px-6 lg:py-10">
       <header className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <p className="eyebrow">Citizen intelligence · Lucknow</p>
+          <p className="eyebrow">Citizen intelligence · {locationName}</p>
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink md:text-4xl">
             Your city, in view.
           </h1>
@@ -196,7 +138,7 @@ export default function Dashboard() {
             ))}
       </section>
       <section className="mt-7 grid gap-6 lg:grid-cols-[.86fr_1.5fr]">
-        <Weather />
+        <Weather weather={risks?.weather} locationName={locationName} />
         <div className="card p-5 sm:p-6">
           <SectionTitle
             eyebrow="What needs attention"
@@ -262,7 +204,7 @@ export default function Dashboard() {
             </Link>
           </div>
         </div>
-        <MapPanel incidents={incidents} />
+        <MapPanel incidents={incidents} position={position} />
       </section>
       <section className="mt-7 grid gap-4 md:grid-cols-3">
         <div className="card flex items-center gap-4 p-5">

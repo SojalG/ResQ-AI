@@ -1,129 +1,123 @@
-import {
-    createContext,
-    useContext,
-    useEffect,
-    useState
-} from 'react';
+import { createContext, useContext, useEffect, useState } from "react";
 
-import {
-    api,
-    getPosition
-} from '../api';
+import { api, getPosition } from "../api";
 
-const DataContext =
-    createContext();
+const DataContext = createContext();
 
-export function DataProvider({
-    children
-}) {
-    const [risks, setRisks] =
-        useState(null);
+export function DataProvider({ children }) {
+  const [risks, setRisks] = useState(null);
 
-    const [alerts, setAlerts] =
-        useState([]);
+  const [alerts, setAlerts] = useState([]);
 
-    const [incidents, setIncidents] =
-        useState([]);
+  const [incidents, setIncidents] = useState([]);
 
-    const [loading, setLoading] =
-        useState(true);
+  const [loading, setLoading] = useState(true);
 
-    const refresh = async () => {
+  const [locationName, setLocationName] = useState("Your location");
+
+  const [position, setPosition] = useState(null);
+
+  const refresh = async () => {
     try {
-        const position = await getPosition();
+      const currentPosition = await getPosition();
 
-        console.log(
-            'ResQAI location:',
-            position
+      console.log("ResQAI location:", currentPosition);
+
+      setPosition(currentPosition);
+
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${currentPosition.lat}&lon=${currentPosition.lng}&zoom=10&addressdetails=1`,
         );
 
-        const riskUrl =
-            `/risk/current?lat=${position.lat}&lng=${position.lng}`;
+        if (response.ok) {
+          const data = await response.json();
+          const address = data.address || {};
 
-        const riskResponse =
-            await api.get(riskUrl);
+          const city =
+            address.city ||
+            address.town ||
+            address.municipality ||
+            address.village ||
+            address.county;
 
-        const alertsResponse =
-            await api.get('/alerts');
+          const state = address.state;
 
-        const incidentsResponse =
-            await api.get('/incidents?limit=50');
+          if (city) {
+            setLocationName(state ? `${city}, ${state}` : city);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to get location name:", error);
+      }
 
-        setRisks(
-            riskResponse.data
-        );
+      const riskUrl = `/risk/current?lat=${currentPosition.lat}&lng=${currentPosition.lng}`;
 
-        setAlerts(
-            alertsResponse.data
-        );
+      const riskResponse = await api.get(riskUrl);
 
-        setIncidents(
-            incidentsResponse.data
-        );
+      const alertsResponse = await api.get("/alerts");
 
+      const incidentsResponse = await api.get("/incidents?limit=50");
+
+      setRisks(riskResponse.data);
+
+      setAlerts(alertsResponse.data);
+
+      setIncidents(incidentsResponse.data);
     } catch (error) {
-        console.error(
-            'Failed to load ResQAI data:',
-            error
-        );
+      console.error("Failed to load ResQAI data:", error);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
+  };
 
-    useEffect(() => {
+  useEffect(() => {
+    /*
+     * Initial live data load.
+     */
+    refresh();
 
-        /*
-         * Initial live data load.
-         */
-        refresh();
+    /*
+     * Refresh ALL live data every minute.
+     *
+     * This means:
+     *
+     * GPS
+     *   ↓
+     * Weather
+     *   ↓
+     * AQI
+     *   ↓
+     * Risk
+     *   ↓
+     * Alerts
+     *   ↓
+     * MongoDB
+     */
+    const timer = setInterval(() => {
+      refresh();
+    }, 60000);
 
-        /*
-         * Refresh ALL live data every minute.
-         *
-         * This means:
-         *
-         * GPS
-         *   ↓
-         * Weather
-         *   ↓
-         * AQI
-         *   ↓
-         * Risk
-         *   ↓
-         * Alerts
-         *   ↓
-         * MongoDB
-         */
-        const timer =
-            setInterval(
-                () => {
-                    refresh();
-                },
-                60000
-            );
+    return () => clearInterval(timer);
+  }, []);
 
-        return () =>
-            clearInterval(timer);
-
-    }, []);
-
-    return (
-        <DataContext.Provider
-            value={{
-                risks,
-                alerts,
-                incidents,
-                loading,
-                refresh,
-                setAlerts,
-                setIncidents
-            }}
-        >
-            {children}
-        </DataContext.Provider>
-    );
+  return (
+    <DataContext.Provider
+      value={{
+        risks,
+        alerts,
+        incidents,
+        loading,
+        locationName,
+        position,
+        refresh,
+        setAlerts,
+        setIncidents,
+      }}
+    >
+      {children}
+    </DataContext.Provider>
+  );
 }
 
-export const useData =
-    () => useContext(DataContext);
+export const useData = () => useContext(DataContext);
