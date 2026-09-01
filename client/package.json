@@ -11,7 +11,6 @@
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.10",
     "@deck.gl/core": "^9.3.10",
-    "@deck.gl/google-maps": "^9.3.10",
     "axios": "^1.8.4",
     "framer-motion": "^12.9.2",
     "leaflet": "^1.9.4",
