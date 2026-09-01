@@ -6,16 +6,12 @@ const DataContext = createContext();
 
 export function DataProvider({ children }) {
   const [risks, setRisks] = useState(null);
-
   const [alerts, setAlerts] = useState([]);
-
   const [incidents, setIncidents] = useState([]);
-
   const [loading, setLoading] = useState(true);
 
-  const [locationName, setLocationName] = useState("Your location");
-
   const [position, setPosition] = useState(null);
+  const [locationName, setLocationName] = useState("Your location");
 
   const refresh = async () => {
     try {
@@ -24,32 +20,6 @@ export function DataProvider({ children }) {
       console.log("ResQAI location:", currentPosition);
 
       setPosition(currentPosition);
-
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${currentPosition.lat}&lon=${currentPosition.lng}&zoom=10&addressdetails=1`,
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          const address = data.address || {};
-
-          const city =
-            address.city ||
-            address.town ||
-            address.municipality ||
-            address.village ||
-            address.county;
-
-          const state = address.state;
-
-          if (city) {
-            setLocationName(state ? `${city}, ${state}` : city);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to get location name:", error);
-      }
 
       const riskUrl = `/risk/current?lat=${currentPosition.lat}&lng=${currentPosition.lng}`;
 
@@ -60,9 +30,7 @@ export function DataProvider({ children }) {
       const incidentsResponse = await api.get("/incidents?limit=50");
 
       setRisks(riskResponse.data);
-
       setAlerts(alertsResponse.data);
-
       setIncidents(incidentsResponse.data);
     } catch (error) {
       console.error("Failed to load ResQAI data:", error);
@@ -71,32 +39,46 @@ export function DataProvider({ children }) {
     }
   };
 
+  /*
+   * Get city/place name only when
+   * the user's position changes.
+   */
   useEffect(() => {
-    /*
-     * Initial live data load.
-     */
+    if (!position) return;
+
+    let cancelled = false;
+
+    const getLocationName = async () => {
+      try {
+        const lat = position.lat.toFixed(3);
+        const lng = position.lng.toFixed(3);
+
+        const response = await api.get(
+          `/location/reverse?lat=${lat}&lng=${lng}`,
+        );
+
+        if (!cancelled) {
+          setLocationName(response.data.name || "Your location");
+        }
+      } catch (error) {
+        console.error("Failed to get location name:", error);
+      }
+    };
+
+    getLocationName();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    position?.lat ? position.lat.toFixed(3) : null,
+    position?.lng ? position.lng.toFixed(3) : null,
+  ]);
+
+  useEffect(() => {
     refresh();
 
-    /*
-     * Refresh ALL live data every minute.
-     *
-     * This means:
-     *
-     * GPS
-     *   ↓
-     * Weather
-     *   ↓
-     * AQI
-     *   ↓
-     * Risk
-     *   ↓
-     * Alerts
-     *   ↓
-     * MongoDB
-     */
-    const timer = setInterval(() => {
-      refresh();
-    }, 60000);
+    const timer = setInterval(refresh, 60000);
 
     return () => clearInterval(timer);
   }, []);
@@ -108,9 +90,9 @@ export function DataProvider({ children }) {
         alerts,
         incidents,
         loading,
-        locationName,
-        position,
         refresh,
+        position,
+        locationName,
         setAlerts,
         setIncidents,
       }}

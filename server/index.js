@@ -9,6 +9,7 @@ import alerts from "./routes/alerts.js";
 import liveAlerts from "./routes/liveAlerts.js";
 import risk from "./routes/risk.js";
 import chat from "./routes/chat.js";
+import location from "./routes/location.js";
 
 import { getRecommendation } from "./services/gemini.js";
 
@@ -64,6 +65,11 @@ app.use(
 app.use(
   "/api/risk",
   risk,
+);
+
+app.use(
+  "/api/location",
+  location,
 );
 
 app.use(
